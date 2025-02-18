@@ -1,51 +1,45 @@
-from flask import Flask, request, send_file, send_from_directory
+import os
+from flask import Flask, request, send_from_directory
 from datetime import datetime
 from base64 import urlsafe_b64decode
-import sqlite3
-import os  # Import os to use Heroku's assigned port
-
-# Ensure database setup
-db = sqlite3.connect("records.db")
-db.execute("CREATE TABLE IF NOT EXISTS Visits(ip text, name text, datetime text)")
-db.commit()
-db.close()
+from pymongo import MongoClient
 
 app = Flask(__name__)
 
+# ✅ Use your MongoDB Atlas connection string
+MONGO_URI = "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+# ✅ Connect to MongoDB
+client = MongoClient(MONGO_URI)
+db = client.get_database()  # Get the default database
+visits_collection = db["Visits"]  # MongoDB creates this automatically
+
 @app.route('/')
 def index():
-    db = sqlite3.connect("records.db")
-    cur = db.cursor()
     ip_addr = request.remote_addr
     args = request.args
     name = args.get("name", default="")
+
     if 'refer_code' in args:
         name = urlsafe_b64decode(str.encode(args.get('refer_code'))).decode()
+
     now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
-    params = [ip_addr, name, now]
-    print(params)
-    cur.execute("INSERT INTO Visits(ip, name, datetime) VALUES (?, ?, ?)", params)
-    db.commit()
-    cur.close()
-    db.close()
+    # ✅ Store visitor data in MongoDB (No schema needed)
+    visits_collection.insert_one({"ip": ip_addr, "name": name, "datetime": now})
+
     return send_from_directory('static', 'index.html')
 
 @app.route('/getRecords')
 def getRecords():
-    db = sqlite3.connect("records.db")
-    cur = db.cursor()
-    res = cur.execute("SELECT ip, name, datetime FROM Visits")
-    visits = res.fetchall()
-    db.close()
+    visits = list(visits_collection.find({}, {"_id": 0}))  # Hide MongoDB's `_id`
     return '<br/>'.join([str(v) for v in visits])
 
 @app.route('/<path:path>')
 def other_rsc(path):
-    print('rsc')
     return send_from_directory('static', path)
 
-# **✅ Fix: Use Heroku's assigned port instead of 5000**
+# ✅ Use Heroku's port if available
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Use Heroku’s assigned port
-    app.run(host="0.0.0.0", port=port, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
