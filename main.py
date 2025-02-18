@@ -6,13 +6,13 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# ✅ Updated MongoDB Atlas connection string (Added `email_tester_db` at the end)
-MONGO_URI = "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0"
+# ✅ Use the MongoDB connection string from Heroku ENV variable
+MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0")
 
-# ✅ Connect to MongoDB Atlas
-client = MongoClient(MONGO_URI)
-db = client["email_tester_db"]  # Now it connects to the correct database
-visits_collection = db["Visits"]  # MongoDB will create this automatically
+# ✅ Connect to MongoDB with TLS/SSL Fix
+client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
+db = client["email_tester_db"]  
+visits_collection = db["Visits"]  
 
 @app.route('/')
 def index():
@@ -25,7 +25,7 @@ def index():
 
     now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
-    # ✅ Store visitor data in MongoDB (No schema needed)
+    # ✅ Store visitor data in MongoDB
     visits_collection.insert_one({"ip": ip_addr, "name": name, "datetime": now})
 
     return send_from_directory('static', 'index.html')
@@ -39,7 +39,7 @@ def getRecords():
 def other_rsc(path):
     return send_from_directory('static', path)
 
-# ✅ Use Heroku's port if available
+# ✅ Use Heroku's dynamic port
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
