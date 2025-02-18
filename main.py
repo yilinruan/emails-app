@@ -4,7 +4,7 @@ from flask import Flask, request, send_from_directory
 from datetime import datetime
 from pymongo import MongoClient
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static")
 
 # ✅ Use MongoDB connection string from Heroku ENV variable
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0")
@@ -36,6 +36,11 @@ def track_click():
     print(f"✅ Email Click Logged: {click_data}")  # Debugging info
 
     return send_from_directory('static', 'index.html')
+
+# ✅ Fix: Serve Static Files (Images, CSS, JS)
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory("static", filename)
 
 @app.route('/getClickRecords')
 def get_click_records():
