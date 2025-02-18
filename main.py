@@ -1,43 +1,46 @@
 import os
+import base64
 from flask import Flask, request, send_from_directory
 from datetime import datetime
-from base64 import urlsafe_b64decode
 from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# ✅ Use the MongoDB connection string from Heroku ENV variable
+# ✅ Use MongoDB connection string from Heroku ENV variable
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0")
 
-# ✅ Connect to MongoDB with TLS/SSL Fix
+# ✅ Connect to MongoDB
 client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
-db = client["email_tester_db"]  
-visits_collection = db["Visits"]  
+db = client["email_tester_db"]
+clicks_collection = db["EmailClicks"]  # ✅ Track email clicks
 
 @app.route('/')
-def index():
-    ip_addr = request.remote_addr
+def track_click():
+    ip_addr = request.remote_addr  # ✅ Get user's IP address
     args = request.args
-    name = args.get("name", default="")
+    email = None
 
+    # ✅ Decode email from `refer_code` (if present)
     if 'refer_code' in args:
-        name = urlsafe_b64decode(str.encode(args.get('refer_code'))).decode()
+        try:
+            email = base64.urlsafe_b64decode(args.get('refer_code')).decode()
+        except Exception:
+            email = "Unknown"
 
     now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
-    # ✅ Store visitor data in MongoDB
-    visits_collection.insert_one({"ip": ip_addr, "name": name, "datetime": now})
+    # ✅ Store click data in MongoDB
+    click_data = {"ip": ip_addr, "email": email, "datetime": now}
+    clicks_collection.insert_one(click_data)
+
+    print(f"✅ Email Click Logged: {click_data}")  # Debugging info
 
     return send_from_directory('static', 'index.html')
 
-@app.route('/getRecords')
-def getRecords():
-    visits = list(visits_collection.find({}, {"_id": 0}))  # Hide MongoDB's `_id`
-    return '<br/>'.join([str(v) for v in visits])
-
-@app.route('/<path:path>')
-def other_rsc(path):
-    return send_from_directory('static', path)
+@app.route('/getClickRecords')
+def get_click_records():
+    clicks = list(clicks_collection.find({}, {"_id": 0}))  # Hide MongoDB's `_id`
+    return '<br/>'.join([str(c) for c in clicks])
 
 # ✅ Use Heroku's dynamic port
 if __name__ == "__main__":
