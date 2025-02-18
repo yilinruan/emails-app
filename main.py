@@ -37,10 +37,10 @@ def track_click():
 
     return send_from_directory('static', 'index.html')
 
-# ✅ Fix: Serve Static Files (Images, CSS, JS)
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory("static", filename)
+# # ✅ Fix: Serve Static Files (Images, CSS, JS)
+# @app.route('/static/<path:filename>')
+# def serve_static(filename):
+#     return send_from_directory("static", filename)
 
 @app.route('/getClickRecords')
 def get_click_records():
