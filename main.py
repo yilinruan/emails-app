@@ -6,13 +6,13 @@ from pymongo import MongoClient
 
 app = Flask(__name__)
 
-# ✅ Use your MongoDB Atlas connection string
-MONGO_URI = "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+# ✅ Updated MongoDB Atlas connection string (Added `email_tester_db` at the end)
+MONGO_URI = "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0"
 
-# ✅ Connect to MongoDB
+# ✅ Connect to MongoDB Atlas
 client = MongoClient(MONGO_URI)
-db = client.get_database()  # Get the default database
-visits_collection = db["Visits"]  # MongoDB creates this automatically
+db = client["email_tester_db"]  # Now it connects to the correct database
+visits_collection = db["Visits"]  # MongoDB will create this automatically
 
 @app.route('/')
 def index():
@@ -42,4 +42,4 @@ def other_rsc(path):
 # ✅ Use Heroku's port if available
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)
