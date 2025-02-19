@@ -14,6 +14,11 @@ client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
 db = client["email_tester_db"]
 clicks_collection = db["EmailClicks"]  # ✅ Track email clicks
 
+# # ✅ Fix: Serve Static Files (Images, CSS, JS)
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    return send_from_directory("static", filename)
+
 @app.route('/')
 def track_click():
     ip_addr = request.remote_addr  # ✅ Get user's IP address
@@ -36,11 +41,6 @@ def track_click():
     print(f"✅ Email Click Logged: {click_data}")  # Debugging info
 
     return send_from_directory('static', 'index.html')
-
-# # ✅ Fix: Serve Static Files (Images, CSS, JS)
-# @app.route('/static/<path:filename>')
-# def serve_static(filename):
-#     return send_from_directory("static", filename)
 
 @app.route('/getClickRecords')
 def get_click_records():
