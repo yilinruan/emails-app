@@ -14,7 +14,7 @@ client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
 db = client["email_tester_db"]
 clicks_collection = db["EmailClicks"]  # ✅ Track email clicks
 
-# # ✅ Fix: Serve Static Files (Images, CSS, JS)
+# ✅ Fix: Serve Static Files (Images, CSS, JS)
 @app.route('/static/<path:filename>')
 def serve_static(filename):
     return send_from_directory("static", filename)
@@ -28,7 +28,8 @@ def track_click():
     # ✅ Decode email from `refer_code` (if present)
     if 'refer_code' in args:
         try:
-            email = base64.urlsafe_b64decode(args.get('refer_code')).decode()
+            decoded_email = base64.urlsafe_b64decode(args.get('refer_code')).decode().strip().lower()
+            email = decoded_email  # ✅ Standardize email (lowercase & stripped)
         except Exception:
             email = "Unknown"
 
