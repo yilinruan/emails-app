@@ -6,40 +6,34 @@ from pymongo import MongoClient
 
 app = Flask(__name__, static_folder="static")
 
-# ✅ Use MongoDB connection string from Heroku ENV variable
+# ✅ MongoDB Connection
 MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://ss1156161413:testemail123@cluster0.xg8fd.mongodb.net/email_tester_db?retryWrites=true&w=majority&appName=Cluster0")
-
-# ✅ Connect to MongoDB
 client = MongoClient(MONGO_URI, tls=True, tlsAllowInvalidCertificates=True)
 db = client["email_tester_db"]
-clicks_collection = db["EmailClicks"]  # ✅ Track email clicks
-
-# ✅ Fix: Serve Static Files (Images, CSS, JS)
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    return send_from_directory("static", filename)
+clicks_collection = db["EmailClicks"]  # ✅ Store email clicks
 
 @app.route('/')
 def track_click():
-    ip_addr = request.remote_addr  # ✅ Get user's IP address
+    ip_addr = request.remote_addr
     args = request.args
-    email = None
 
-    # ✅ Decode email from `refer_code` (if present)
-    if 'refer_code' in args:
-        try:
-            decoded_email = base64.urlsafe_b64decode(args.get('refer_code')).decode().strip().lower()
-            email = decoded_email  # ✅ Standardize email (lowercase & stripped)
-        except Exception:
-            email = "Unknown"
+    # ✅ Check if `refer_code` exists, otherwise do NOT record
+    if 'refer_code' not in args or not args.get('refer_code'):
+        print(f"⚠️ Ignoring request from {ip_addr} (No refer_code)")
+        return send_from_directory('static', 'index.html')  # Serve page but don't log
 
-    now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
+    try:
+        email = base64.urlsafe_b64decode(args.get('refer_code')).decode().strip().lower()
+        now = datetime.now().strftime("%m/%d/%Y, %H:%M:%S")
 
-    # ✅ Store click data in MongoDB
-    click_data = {"ip": ip_addr, "email": email, "datetime": now}
-    clicks_collection.insert_one(click_data)
+        # ✅ Store valid click data in MongoDB
+        click_data = {"ip": ip_addr, "email": email, "datetime": now}
+        clicks_collection.insert_one(click_data)
 
-    print(f"✅ Email Click Logged: {click_data}")  # Debugging info
+        print(f"✅ Email Click Logged: {click_data}")  # Debugging info
+
+    except Exception:
+        print(f"⚠️ Invalid refer_code detected, ignoring request from {ip_addr}")
 
     return send_from_directory('static', 'index.html')
 
